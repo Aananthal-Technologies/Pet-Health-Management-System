@@ -1,0 +1,82 @@
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f7fa;color:#1a1a2e;min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+/* ── Auth page ── */
+.auth-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
+.auth-card{background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,.08);width:100%;max-width:480px;overflow:hidden}
+.auth-tabs{display:flex;border-bottom:1px solid #eee}
+.auth-tab{flex:1;padding:.9rem;text-align:center;cursor:pointer;font-size:.9rem;color:#888;transition:all .2s}
+.auth-tab.active{color:#2563eb;border-bottom:2px solid #2563eb;font-weight:600}
+.auth-form{padding:2rem;display:none}
+.auth-form.active{display:block}
+.auth-form h2{margin-bottom:1.5rem;font-size:1.2rem}
+
+fieldset{border:1px solid #eee;border-radius:8px;padding:1rem;margin-bottom:1rem}
+legend{font-size:.75rem;font-weight:700;color:#2563eb;padding:0 .4rem;text-transform:uppercase;letter-spacing:.05em}
+
+.field{margin-bottom:.9rem}
+.field label{display:block;font-size:.8rem;color:#555;margin-bottom:.3rem;font-weight:500}
+.field input,.field select,.field textarea{width:100%;padding:.55rem .8rem;border:1px solid #ddd;border-radius:6px;font-size:.9rem;outline:none;font-family:inherit;transition:border-color .2s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#2563eb}
+.field textarea{resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.msg{font-size:.8rem;margin:.5rem 0;padding:.5rem .75rem;border-radius:6px;display:none}
+.msg.error{background:#fef2f2;color:#dc2626;display:block}
+.msg.success{background:#f0fdf4;color:#16a34a;display:block}
+
+btn,button[type=submit]{width:100%;padding:.7rem;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:.95rem;cursor:pointer;transition:background .2s;margin-top:.5rem}
+button[type=submit]:hover{background:#1d4ed8}
+
+/* ── Dashboard ── */
+.topbar{background:#fff;border-bottom:1px solid #eee;padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.topbar .brand{font-weight:700;color:#2563eb;font-size:1.1rem}
+.topbar .user-info{display:flex;align-items:center;gap:1rem;font-size:.875rem}
+.logout-btn{padding:.4rem .9rem;background:#f1f5f9;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;color:#444}
+.logout-btn:hover{background:#e2e8f0}
+
+.page{max-width:1100px;margin:0 auto;padding:1.5rem}
+.section{margin-bottom:2rem}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.section-title{font-size:1rem;font-weight:700;color:#1a1a2e}
+
+.pet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+.pet-card{background:#fff;border-radius:10px;padding:1.2rem;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.pet-card .pet-name{font-weight:700;font-size:1rem;margin-bottom:.3rem}
+.pet-card .pet-species{font-size:.8rem;color:#2563eb;text-transform:capitalize;margin-bottom:.6rem}
+.pet-card .pet-detail{font-size:.8rem;color:#666;margin-bottom:.2rem}
+.pet-card .pet-badge{display:inline-block;font-size:.7rem;padding:.2rem .5rem;border-radius:4px;background:#eff6ff;color:#2563eb;margin-top:.4rem}
+
+.add-btn{padding:.45rem 1rem;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:.8rem;cursor:pointer}
+.add-btn:hover{background:#1d4ed8}
+
+.clinic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem}
+.clinic-card{background:#fff;border-radius:10px;padding:1.2rem;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.clinic-card .clinic-name{font-weight:700;margin-bottom:.3rem}
+.clinic-card .clinic-spec{font-size:.8rem;color:#2563eb;margin-bottom:.5rem}
+.clinic-card .clinic-info{font-size:.8rem;color:#666;margin-bottom:.2rem}
+.same-pincode{border-left:3px solid #2563eb}
+
+.book-btn{width:100%;margin-top:.8rem;padding:.5rem;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:.8rem;cursor:pointer}
+.book-btn:hover{background:#1d4ed8}
+.load-more{display:block;margin:.75rem auto 0;padding:.5rem 1.5rem;background:#f1f5f9;border:1px solid #ddd;border-radius:6px;cursor:pointer;font-size:.85rem;color:#444}
+.load-more:hover{background:#e2e8f0}
+
+.appt-list{display:flex;flex-direction:column;gap:.75rem}
+.appt-card{background:#fff;border-radius:10px;padding:1rem 1.2rem;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem}
+.appt-info .appt-clinic{font-weight:600;font-size:.9rem}
+.appt-info .appt-pet{font-size:.8rem;color:#555}
+.appt-info .appt-date{font-size:.78rem;color:#888;margin-top:.2rem}
+.badge{display:inline-block;padding:.2rem .55rem;border-radius:4px;font-size:.72rem;font-weight:600;text-transform:uppercase}
+.badge.pending{background:#fef9c3;color:#854d0e}
+.badge.approved{background:#dcfce7;color:#166534}
+.badge.rejected{background:#fee2e2;color:#991b1b}
+
+/* ── Modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:2rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
+.modal h3{margin-bottom:1.2rem;font-size:1rem}
+.modal-close{float:right;background:none;border:none;font-size:1.2rem;cursor:pointer;color:#888;margin-top:-.3rem}
+
+.empty{text-align:center;color:#aaa;font-size:.9rem;padding:2rem}
