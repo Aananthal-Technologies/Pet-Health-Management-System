@@ -9,7 +9,10 @@
       "Bash(npm install *)",
       "Bash(node server.js)",
       "Bash(curl -s http://localhost:3000/api/health)",
-      "Bash(kill %1)"
+      "Bash(kill %1)",
+      "Bash(rm -rf templates client static)",
+      "Bash(mkdir -p cartridges/auth/routes cartridges/auth/controller cartridges/auth/model cartridges/auth/middleware cartridges/pets/routes cartridges/pets/controller cartridges/pets/model cartridges/pets/middleware cartridges/owners/routes cartridges/owners/controller cartridges/owners/model cartridges/owners/middleware cartridges/appointments/routes cartridges/appointments/controller cartridges/appointments/model cartridges/appointments/middleware cartridges/medical-records/routes cartridges/medical-records/controller cartridges/medical-records/model cartridges/medical-records/middleware config middleware client/src client/public static/css static/js static/images templates/layouts templates/pages)",
+      "Bash(xargs -I{} touch \"{}/.gitkeep\")"
     ]
   }
 }
