@@ -9,8 +9,8 @@
 <div class="auth-wrap">
   <div class="auth-card">
     <div class="auth-tabs">
-      <div class="auth-tab active" onclick="switchTab('login')">Login</div>
-      <div class="auth-tab" onclick="switchTab('register')">Register Clinic</div>
+      <div class="auth-tab active" tabindex="0" onclick="switchTab('login')" onkeydown="if(event.key==='Enter'||event.key===' ')switchTab('login')">Login</div>
+      <div class="auth-tab" tabindex="0" onclick="switchTab('register')" onkeydown="if(event.key==='Enter'||event.key===' ')switchTab('register')">Register Clinic</div>
     </div>
 
     <!-- LOGIN -->
@@ -33,6 +33,7 @@
           <div class="field"><label>Phone *</label><input type="tel" id="r-phone" placeholder="+91 9999999999" /></div>
         </div>
         <div class="field"><label>Password *</label><input type="password" id="r-pass" placeholder="Min 6 characters" /></div>
+        <div class="field"><label>Confirm Password *</label><input type="password" id="r-pass-confirm" placeholder="Repeat password" /></div>
         <div class="row">
           <div class="field"><label>Pincode *</label><input type="text" id="r-pincode" placeholder="560045" maxlength="6" /></div>
           <div class="field"><label>License No.</label><input type="text" id="r-license" placeholder="VET/2024/001" /></div>
@@ -87,33 +88,41 @@
     const email    = document.getElementById('l-email').value.trim();
     const password = document.getElementById('l-pass').value;
     if (!email || !password) return showMsg('l-msg', 'Please fill all fields', 'error');
-    const res  = await fetch('/api/clinic/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
-    const data = await res.json();
-    if (!data.success) return showMsg('l-msg', data.message, 'error');
-    storeAndRedirect(data);
+    try {
+      const res = await fetch('/api/clinic/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      if (!res.ok && res.status !== 401) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+      if (!data.success) return showMsg('l-msg', data.message, 'error');
+      storeAndRedirect(data);
+    } catch (err) { showMsg('l-msg', err.message || 'Network error', 'error'); }
   }
 
   async function register() {
     const name    = document.getElementById('r-name').value.trim();
     const email   = document.getElementById('r-email').value.trim();
     const phone   = document.getElementById('r-phone').value.trim();
-    const password= document.getElementById('r-pass').value;
+    const password        = document.getElementById('r-pass').value;
+    const passwordConfirm = document.getElementById('r-pass-confirm').value;
     const pincode = document.getElementById('r-pincode').value.trim();
     const address = document.getElementById('r-address').value.trim();
     if (!name || !email || !phone || !password || !pincode || !address)
       return showMsg('r-msg', 'Please fill all required fields', 'error');
     if (password.length < 6) return showMsg('r-msg', 'Password must be at least 6 characters', 'error');
-    const body = {
-      name, email, password, phone, pincode, address,
-      licenseNumber: document.getElementById('r-license').value.trim() || null,
-      specialization: document.getElementById('r-spec').value || null,
-      workingHours:   document.getElementById('r-hours').value.trim() || null,
-      description:    document.getElementById('r-desc').value.trim()  || null,
-    };
-    const res  = await fetch('/api/clinic/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const data = await res.json();
-    if (!data.success) return showMsg('r-msg', data.message, 'error');
-    storeAndRedirect(data);
+    if (password !== passwordConfirm) return showMsg('r-msg', 'Passwords do not match', 'error');
+    try {
+      const body = {
+        name, email, password, phone, pincode, address,
+        licenseNumber:  document.getElementById('r-license').value.trim() || null,
+        specialization: document.getElementById('r-spec').value           || null,
+        workingHours:   document.getElementById('r-hours').value.trim()   || null,
+        description:    document.getElementById('r-desc').value.trim()    || null,
+      };
+      const res  = await fetch('/api/clinic/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!res.ok && res.status !== 400) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+      if (!data.success) return showMsg('r-msg', data.message, 'error');
+      storeAndRedirect(data);
+    } catch (err) { showMsg('r-msg', err.message || 'Network error', 'error'); }
   }
 </script>
 </body>

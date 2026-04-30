@@ -26,14 +26,27 @@ app.get('/dashboard', (_req, res) => res.sendFile(html('dashboard.html')));
 
 app.post('/api/owner/register', async (req, res) => {
   const { name, email, password, phone, age, address, pincode, pet } = req.body;
+  if (!name?.trim() || !email?.trim() || !password || !pincode?.trim() || !age) {
+    return res.status(400).json({ success: false, message: 'Name, email, password, pincode and age are required' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ success: false, message: 'Invalid email format' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+  }
+  if (!/^\d{6}$/.test(pincode)) {
+    return res.status(400).json({ success: false, message: 'Pincode must be 6 digits' });
+  }
   try {
     const passwordHash = await bcrypt.hash(password, 10);
-    const userId = await db.registerUser({ name, email, passwordHash, phone, age, address, pincode });
+    const userId = await db.registerUser({ name: name.trim(), email: email.trim(), passwordHash, phone, age, address, pincode });
     if (pet?.name) await db.registerPet(userId, pet, pincode);
     const token = jwt.sign({ id: userId, type: 'owner', pincode }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ success: true, token, userId, pincode, name });
+    res.status(201).json({ success: true, token, userId, pincode, name: name.trim() });
   } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+    console.error('[register owner]', err.message);
+    res.status(400).json({ success: false, message: err.message.includes('duplicate') ? 'Email already registered' : 'Registration failed' });
   }
 });
 

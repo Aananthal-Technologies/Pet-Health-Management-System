@@ -1,12 +1,16 @@
 import jwt from 'jsonwebtoken';
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+
 export const verifyToken = (req, res, next) => {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
     return res.status(401).json({ success: false, message: 'Unauthorized' });
   }
   try {
-    req.user = jwt.verify(header.split(' ')[1], process.env.JWT_SECRET);
+    req.user = jwt.verify(header.split(' ')[1], process.env.JWT_SECRET, { algorithms: ['HS256'] });
     next();
   } catch {
     res.status(401).json({ success: false, message: 'Invalid or expired token' });

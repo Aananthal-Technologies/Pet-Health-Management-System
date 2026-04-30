@@ -25,7 +25,7 @@ legend{font-size:.75rem;font-weight:700;color:#2563eb;padding:0 .4rem;text-trans
 .msg.error{background:#fef2f2;color:#dc2626;display:block}
 .msg.success{background:#f0fdf4;color:#16a34a;display:block}
 
-btn,button[type=submit]{width:100%;padding:.7rem;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:.95rem;cursor:pointer;transition:background .2s;margin-top:.5rem}
+.btn,button[type=submit]{width:100%;padding:.7rem;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:.95rem;cursor:pointer;transition:background .2s;margin-top:.5rem}
 button[type=submit]:hover{background:#1d4ed8}
 
 /* ── Dashboard ── */

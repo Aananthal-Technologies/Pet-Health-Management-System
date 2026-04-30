@@ -99,55 +99,65 @@
   }
 
   async function login() {
-    const email = document.getElementById('l-email').value.trim();
+    const email    = document.getElementById('l-email').value.trim();
     const password = document.getElementById('l-pass').value;
     if (!email || !password) return showMsg('l-msg', 'Please fill all fields', 'error');
     try {
       const res = await fetch('/api/owner/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      if (!res.ok && res.status !== 401) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
       if (!data.success) return showMsg('l-msg', data.message, 'error');
-      localStorage.setItem('ownerToken', data.token);
-      localStorage.setItem('ownerName', data.name);
+      localStorage.setItem('ownerToken',   data.token);
+      localStorage.setItem('ownerName',    data.name);
       localStorage.setItem('ownerPincode', data.pincode);
-      localStorage.setItem('ownerId', data.userId);
+      localStorage.setItem('ownerId',      data.userId);
       location.href = '/dashboard';
-    } catch { showMsg('l-msg', 'Something went wrong', 'error'); }
+    } catch (err) { showMsg('l-msg', err.message || 'Something went wrong', 'error'); }
   }
 
   async function register() {
-    const name    = document.getElementById('r-name').value.trim();
-    const age     = document.getElementById('r-age').value;
-    const email   = document.getElementById('r-email').value.trim();
-    const password= document.getElementById('r-pass').value;
-    const phone   = document.getElementById('r-phone').value.trim();
-    const pincode = document.getElementById('r-pincode').value.trim();
-    const address = document.getElementById('r-address').value.trim();
+    const name     = document.getElementById('r-name').value.trim();
+    const age      = document.getElementById('r-age').value;
+    const email    = document.getElementById('r-email').value.trim();
+    const password = document.getElementById('r-pass').value;
+    const phone    = document.getElementById('r-phone').value.trim();
+    const pincode  = document.getElementById('r-pincode').value.trim();
+    const address  = document.getElementById('r-address').value.trim();
+
     if (!name || !age || !email || !password || !pincode) return showMsg('r-msg', 'Please fill required fields', 'error');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showMsg('r-msg', 'Invalid email format', 'error');
     if (password.length < 6) return showMsg('r-msg', 'Password must be at least 6 characters', 'error');
+    if (!/^\d{6}$/.test(pincode)) return showMsg('r-msg', 'Pincode must be 6 digits', 'error');
 
     const petName = document.getElementById('p-name').value.trim();
     const pet = petName ? {
-      name: petName, species: document.getElementById('p-species').value,
-      breed: document.getElementById('p-breed').value.trim(),
-      gender: document.getElementById('p-gender').value,
-      age: document.getElementById('p-age').value,
-      weight: document.getElementById('p-weight').value,
-      color: document.getElementById('p-color').value.trim(),
+      name:               petName,
+      species:            document.getElementById('p-species').value,
+      breed:              document.getElementById('p-breed').value.trim()  || null,
+      gender:             document.getElementById('p-gender').value        || null,
+      age:                (v => v !== '' ? Number(v) : null)(document.getElementById('p-age').value),
+      weight:             (v => v !== '' ? Number(v) : null)(document.getElementById('p-weight').value),
+      color:              document.getElementById('p-color').value.trim()  || null,
       vaccination_status: document.getElementById('p-vacc').value,
-      last_checkup_date: document.getElementById('p-checkup').value || null,
-      medical_notes: document.getElementById('p-notes').value.trim(),
+      last_checkup_date:  document.getElementById('p-checkup').value      || null,
+      medical_notes:      document.getElementById('p-notes').value.trim() || null,
     } : null;
 
     try {
-      const res = await fetch('/api/owner/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, password, phone, age, address, pincode, pet }) });
+      const res = await fetch('/api/owner/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, phone, age: Number(age), address, pincode, pet }),
+      });
+      if (!res.ok && res.status !== 400) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
       if (!data.success) return showMsg('r-msg', data.message, 'error');
-      localStorage.setItem('ownerToken', data.token);
-      localStorage.setItem('ownerName', data.name);
+      localStorage.setItem('ownerToken',   data.token);
+      localStorage.setItem('ownerName',    data.name);
       localStorage.setItem('ownerPincode', data.pincode);
-      localStorage.setItem('ownerId', data.userId);
+      localStorage.setItem('ownerId',      data.userId);
       location.href = '/dashboard';
-    } catch { showMsg('r-msg', 'Something went wrong', 'error'); }
+    } catch (err) { showMsg('r-msg', err.message || 'Something went wrong', 'error'); }
   }
 </script>
 </body>

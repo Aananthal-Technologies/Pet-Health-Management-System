@@ -26,13 +26,26 @@ app.get('/dashboard', (_req, res) => res.sendFile(html('dashboard.html')));
 
 app.post('/api/clinic/register', async (req, res) => {
   const { name, email, password, phone, address, pincode, licenseNumber, specialization, workingHours, description } = req.body;
+  if (!name?.trim() || !email?.trim() || !password) {
+    return res.status(400).json({ success: false, message: 'Name, email and password are required' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ success: false, message: 'Invalid email format' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+  }
+  if (!pincode?.trim() || !/^\d{6}$/.test(pincode)) {
+    return res.status(400).json({ success: false, message: 'Pincode must be 6 digits' });
+  }
   try {
     const passwordHash = await bcrypt.hash(password, 10);
-    const clinicId = await db.registerClinic({ name, email, passwordHash, phone, address, pincode, licenseNumber, specialization, workingHours, description });
+    const clinicId = await db.registerClinic({ name: name.trim(), email: email.trim(), passwordHash, phone, address, pincode, licenseNumber, specialization, workingHours, description });
     const token = jwt.sign({ id: clinicId, type: 'clinic', pincode }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ success: true, token, clinicId, pincode, name });
+    res.status(201).json({ success: true, token, clinicId, pincode, name: name.trim() });
   } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+    console.error('[register clinic]', err.message);
+    res.status(400).json({ success: false, message: err.message.includes('duplicate') ? 'Email already registered' : 'Registration failed' });
   }
 });
 
@@ -67,9 +80,16 @@ app.patch('/api/clinic/appointments/:masterId/status', verifyClinic, async (req,
     return res.status(400).json({ success: false, message: 'Status must be approved or rejected' });
   }
   try {
-    await db.updateAppointmentStatus(req.params.masterId, status, req.body.pincode);
+    const updated = await db.updateAppointmentStatus(
+      req.params.masterId,
+      req.user.id,
+      status,
+      req.user.pincode,
+    );
+    if (!updated) return res.status(403).json({ success: false, message: 'Appointment not found or not owned by this clinic' });
     res.json({ success: true });
   } catch (err) {
+    console.error('[update status]', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });

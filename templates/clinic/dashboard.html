@@ -16,23 +16,18 @@
 </div>
 
 <div class="page">
-
-  <!-- Stats -->
-  <div class="stats" id="stats">
+  <div class="stats">
     <div class="stat-card"><div class="stat-num" id="s-total">–</div><div class="stat-label">Total</div></div>
     <div class="stat-card"><div class="stat-num" id="s-pending">–</div><div class="stat-label">Pending</div></div>
     <div class="stat-card"><div class="stat-num" id="s-approved">–</div><div class="stat-label">Approved</div></div>
     <div class="stat-card"><div class="stat-num" id="s-rejected">–</div><div class="stat-label">Rejected</div></div>
   </div>
-
-  <!-- Filter -->
   <div class="filter-bar">
-    <button class="filter-btn active" onclick="filterAppts('all', this)">All</button>
-    <button class="filter-btn" onclick="filterAppts('pending', this)">Pending</button>
-    <button class="filter-btn" onclick="filterAppts('approved', this)">Approved</button>
-    <button class="filter-btn" onclick="filterAppts('rejected', this)">Rejected</button>
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="pending">Pending</button>
+    <button class="filter-btn" data-filter="approved">Approved</button>
+    <button class="filter-btn" data-filter="rejected">Rejected</button>
   </div>
-
   <div class="appt-list" id="appt-list"><p class="empty">Loading...</p></div>
 </div>
 
@@ -41,7 +36,8 @@
   const cName    = localStorage.getItem('clinicName');
   const pincode  = localStorage.getItem('clinicPincode');
   const clinicId = localStorage.getItem('clinicId');
-  if (!token) location.href = '/';
+
+  if (!token) { location.href = '/'; throw new Error('redirect'); }
 
   document.getElementById('welcome').textContent = `${cName} · ${pincode}`;
 
@@ -51,57 +47,70 @@
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
 
+  const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
   let allAppts = [];
 
   function logout() { localStorage.clear(); location.href = '/'; }
 
-  function filterAppts(status, btn) {
+  document.querySelector('.filter-bar').addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    const filtered = status === 'all' ? allAppts : allAppts.filter(a => a.appointment.status === status);
-    renderAppts(filtered);
-  }
+    const f = btn.dataset.filter;
+    renderAppts(f === 'all' ? allAppts : allAppts.filter(a => a.appointment.status === f));
+  });
+
+  document.getElementById('appt-list').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    updateStatus(btn.dataset.id, btn.dataset.action, btn.dataset.pincode);
+  });
 
   function renderAppts(list) {
     const el = document.getElementById('appt-list');
     if (!list || !list.length) { el.innerHTML = '<p class="empty">No appointments found.</p>'; return; }
     el.innerHTML = list.map(({ appointment: a, user: u, pet: p }) => `
-      <div class="appt-card" id="card-${a.id}">
+      <div class="appt-card" id="card-${esc(a.id)}">
         <div class="appt-top">
           <div>
-            <div class="appt-user">${u.name}</div>
-            <div class="appt-meta">📞 ${u.phone || '–'} · Pincode: ${a.pincode}</div>
-            <div class="appt-meta">🐾 ${p.name} · ${p.species}${p.breed ? ` (${p.breed})` : ''}${p.gender ? ` · ${p.gender}` : ''}${p.age ? ` · ${p.age}yrs` : ''}</div>
+            <div class="appt-user">${esc(u.name)}</div>
+            <div class="appt-meta">📞 ${esc(u.phone || '–')} · Pincode: ${esc(a.pincode)}</div>
+            <div class="appt-meta">🐾 ${esc(p.name)} · ${esc(p.species)}${p.breed ? ` (${esc(p.breed)})` : ''}${p.gender ? ` · ${esc(p.gender)}` : ''}${p.age ? ` · ${esc(p.age)}yrs` : ''}</div>
             <div class="appt-meta">📅 ${new Date(a.appointment_date).toLocaleString()}</div>
           </div>
-          <span class="badge ${a.status}">${a.status}</span>
+          <span class="badge ${esc(a.status)}">${esc(a.status)}</span>
         </div>
-        ${a.reason ? `<div class="appt-reason">Reason: ${a.reason}${a.notes ? ` · Notes: ${a.notes}` : ''}</div>` : ''}
+        ${a.reason ? `<div class="appt-reason">Reason: ${esc(a.reason)}${a.notes ? ` · Notes: ${esc(a.notes)}` : ''}</div>` : ''}
         <div class="appt-footer">
-          <span style="font-size:.75rem;color:#aaa">ID: ${a.id.slice(0,8)}...</span>
+          <span style="font-size:.75rem;color:#aaa">ID: ${esc(a.id.slice(0,8))}...</span>
           ${a.status === 'pending' ? `
             <div class="appt-actions">
-              <button class="action-btn accept-btn" onclick="updateStatus('${a.id}','approved','${a.pincode}')">Accept</button>
-              <button class="action-btn reject-btn" onclick="updateStatus('${a.id}','rejected','${a.pincode}')">Reject</button>
+              <button class="action-btn accept-btn" data-action="approved" data-id="${esc(a.id)}" data-pincode="${esc(a.pincode)}">Accept</button>
+              <button class="action-btn reject-btn"  data-action="rejected" data-id="${esc(a.id)}" data-pincode="${esc(a.pincode)}">Reject</button>
             </div>` : ''}
         </div>
       </div>`).join('');
   }
 
   async function updateStatus(masterId, status, apptPincode) {
-    const res  = await api(`/api/clinic/appointments/${masterId}/status`, { method: 'PATCH', body: { status, pincode: apptPincode } });
-    const data = await res.json();
-    if (!data.success) return alert('Failed to update: ' + data.message);
-    const appt = allAppts.find(a => a.appointment.id === masterId);
-    if (appt) appt.appointment.status = status;
-    updateStats();
-    const card = document.getElementById('card-' + masterId);
-    if (card) {
-      card.querySelector('.badge').textContent = status;
-      card.querySelector('.badge').className   = 'badge ' + status;
-      const actions = card.querySelector('.appt-actions');
-      if (actions) actions.remove();
-    }
+    try {
+      const res = await api(`/api/clinic/appointments/${masterId}/status`, { method: 'PATCH', body: { status, pincode: apptPincode } });
+      let data;
+      try { data = await res.json(); } catch { const t = await res.text(); throw new Error(t || `HTTP ${res.status}`); }
+      if (!res.ok || !data.success) { alert(data?.message || 'Failed to update'); return; }
+      const appt = allAppts.find(a => a.appointment.id === masterId);
+      if (appt) appt.appointment.status = status;
+      updateStats();
+      const card = document.getElementById('card-' + masterId);
+      if (card) {
+        card.querySelector('.badge').textContent = status;
+        card.querySelector('.badge').className   = 'badge ' + status;
+        const actions = card.querySelector('.appt-actions');
+        if (actions) actions.remove();
+      }
+    } catch (err) { alert('Error: ' + err.message); }
   }
 
   function updateStats() {
@@ -112,12 +121,17 @@
   }
 
   async function load() {
-    const res  = await api('/api/clinic/appointments');
-    const data = await res.json();
-    if (!data.success) { document.getElementById('appt-list').innerHTML = '<p class="empty">Failed to load.</p>'; return; }
-    allAppts = data.data || [];
-    updateStats();
-    renderAppts(allAppts);
+    try {
+      const res = await api('/api/clinic/appointments');
+      if (!res.ok) { document.getElementById('appt-list').innerHTML = '<p class="empty">Failed to load.</p>'; return; }
+      const data = await res.json();
+      if (!data.success) { document.getElementById('appt-list').innerHTML = '<p class="empty">Failed to load.</p>'; return; }
+      allAppts = data.data || [];
+      updateStats();
+      renderAppts(allAppts);
+    } catch (err) {
+      document.getElementById('appt-list').innerHTML = '<p class="empty">Network error. Please refresh.</p>';
+    }
   }
 
   load();
