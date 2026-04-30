@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git restore *)",
+      "Bash(npm init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(npm install *)",
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:3000/api/health)",
+      "Bash(kill %1)"
+    ]
+  }
+}
