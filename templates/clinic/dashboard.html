@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Clinic Dashboard — PHMS</title>
+  <link rel="stylesheet" href="/css/clinic.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">🏥 PHMS Clinic</span>
+  <div class="user-info">
+    <span id="welcome"></span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- Stats -->
+  <div class="stats" id="stats">
+    <div class="stat-card"><div class="stat-num" id="s-total">–</div><div class="stat-label">Total</div></div>
+    <div class="stat-card"><div class="stat-num" id="s-pending">–</div><div class="stat-label">Pending</div></div>
+    <div class="stat-card"><div class="stat-num" id="s-approved">–</div><div class="stat-label">Approved</div></div>
+    <div class="stat-card"><div class="stat-num" id="s-rejected">–</div><div class="stat-label">Rejected</div></div>
+  </div>
+
+  <!-- Filter -->
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterAppts('all', this)">All</button>
+    <button class="filter-btn" onclick="filterAppts('pending', this)">Pending</button>
+    <button class="filter-btn" onclick="filterAppts('approved', this)">Approved</button>
+    <button class="filter-btn" onclick="filterAppts('rejected', this)">Rejected</button>
+  </div>
+
+  <div class="appt-list" id="appt-list"><p class="empty">Loading...</p></div>
+</div>
+
+<script>
+  const token    = localStorage.getItem('clinicToken');
+  const cName    = localStorage.getItem('clinicName');
+  const pincode  = localStorage.getItem('clinicPincode');
+  const clinicId = localStorage.getItem('clinicId');
+  if (!token) location.href = '/';
+
+  document.getElementById('welcome').textContent = `${cName} · ${pincode}`;
+
+  const api = (url, opts = {}) => fetch(url, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...(opts.headers || {}) },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+
+  let allAppts = [];
+
+  function logout() { localStorage.clear(); location.href = '/'; }
+
+  function filterAppts(status, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filtered = status === 'all' ? allAppts : allAppts.filter(a => a.appointment.status === status);
+    renderAppts(filtered);
+  }
+
+  function renderAppts(list) {
+    const el = document.getElementById('appt-list');
+    if (!list || !list.length) { el.innerHTML = '<p class="empty">No appointments found.</p>'; return; }
+    el.innerHTML = list.map(({ appointment: a, user: u, pet: p }) => `
+      <div class="appt-card" id="card-${a.id}">
+        <div class="appt-top">
+          <div>
+            <div class="appt-user">${u.name}</div>
+            <div class="appt-meta">📞 ${u.phone || '–'} · Pincode: ${a.pincode}</div>
+            <div class="appt-meta">🐾 ${p.name} · ${p.species}${p.breed ? ` (${p.breed})` : ''}${p.gender ? ` · ${p.gender}` : ''}${p.age ? ` · ${p.age}yrs` : ''}</div>
+            <div class="appt-meta">📅 ${new Date(a.appointment_date).toLocaleString()}</div>
+          </div>
+          <span class="badge ${a.status}">${a.status}</span>
+        </div>
+        ${a.reason ? `<div class="appt-reason">Reason: ${a.reason}${a.notes ? ` · Notes: ${a.notes}` : ''}</div>` : ''}
+        <div class="appt-footer">
+          <span style="font-size:.75rem;color:#aaa">ID: ${a.id.slice(0,8)}...</span>
+          ${a.status === 'pending' ? `
+            <div class="appt-actions">
+              <button class="action-btn accept-btn" onclick="updateStatus('${a.id}','approved','${a.pincode}')">Accept</button>
+              <button class="action-btn reject-btn" onclick="updateStatus('${a.id}','rejected','${a.pincode}')">Reject</button>
+            </div>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  async function updateStatus(masterId, status, apptPincode) {
+    const res  = await api(`/api/clinic/appointments/${masterId}/status`, { method: 'PATCH', body: { status, pincode: apptPincode } });
+    const data = await res.json();
+    if (!data.success) return alert('Failed to update: ' + data.message);
+    const appt = allAppts.find(a => a.appointment.id === masterId);
+    if (appt) appt.appointment.status = status;
+    updateStats();
+    const card = document.getElementById('card-' + masterId);
+    if (card) {
+      card.querySelector('.badge').textContent = status;
+      card.querySelector('.badge').className   = 'badge ' + status;
+      const actions = card.querySelector('.appt-actions');
+      if (actions) actions.remove();
+    }
+  }
+
+  function updateStats() {
+    document.getElementById('s-total').textContent    = allAppts.length;
+    document.getElementById('s-pending').textContent  = allAppts.filter(a => a.appointment.status === 'pending').length;
+    document.getElementById('s-approved').textContent = allAppts.filter(a => a.appointment.status === 'approved').length;
+    document.getElementById('s-rejected').textContent = allAppts.filter(a => a.appointment.status === 'rejected').length;
+  }
+
+  async function load() {
+    const res  = await api('/api/clinic/appointments');
+    const data = await res.json();
+    if (!data.success) { document.getElementById('appt-list').innerHTML = '<p class="empty">Failed to load.</p>'; return; }
+    allAppts = data.data || [];
+    updateStats();
+    renderAppts(allAppts);
+  }
+
+  load();
+</script>
+</body>
+</html>
