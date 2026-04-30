@@ -194,6 +194,10 @@ begin
   execute format('select id from %I where master_id = %L', users_tbl, p_owner_master_id)
   into pincode_owner_id;
 
+  if pincode_owner_id is null then
+    raise exception 'Owner master_id % not found in table %', p_owner_master_id, users_tbl;
+  end if;
+
   execute format('
     create table if not exists %I (
       id                 uuid primary key default gen_random_uuid(),
@@ -255,7 +259,14 @@ begin
   returning id into master_id;
 
   execute format('select id from %I where master_id=%L', users_tbl, p_user_master_id) into pincode_user_id;
-  execute format('select id from %I where master_id=%L', pets_tbl, p_pet_master_id)   into pincode_pet_id;
+  if pincode_user_id is null then
+    raise exception 'User master_id % not found in table %', p_user_master_id, users_tbl;
+  end if;
+
+  execute format('select id from %I where master_id=%L', pets_tbl, p_pet_master_id) into pincode_pet_id;
+  if pincode_pet_id is null then
+    raise exception 'Pet master_id % not found in table %', p_pet_master_id, pets_tbl;
+  end if;
 
   execute format('
     create table if not exists %I (
@@ -308,22 +319,45 @@ begin
 end;
 $$;
 
--- ── RPC: get_user_by_email (auth only — master read) ────────
+-- ── RPC: get_user_by_email (auth only — service_role) ───────
 create or replace function get_user_by_email(p_email text)
 returns json language plpgsql security definer as $$
 declare result json;
 begin
-  select row_to_json(u) from "mastertable-users" u where email = p_email into result;
+  select json_build_object(
+    'id',           u.id,
+    'name',         u.name,
+    'email',        u.email,
+    'password_hash',u.password_hash,
+    'phone',        u.phone,
+    'age',          u.age,
+    'address',      u.address,
+    'pincode',      u.pincode,
+    'created_at',   u.created_at
+  ) from "mastertable-users" u where email = p_email into result;
   return result;
 end;
 $$;
 
--- ── RPC: get_clinic_by_email (auth only — master read) ──────
+-- ── RPC: get_clinic_by_email (auth only — service_role) ─────
 create or replace function get_clinic_by_email(p_email text)
 returns json language plpgsql security definer as $$
 declare result json;
 begin
-  select row_to_json(c) from "mastertable-clinics" c where email = p_email into result;
+  select json_build_object(
+    'id',             c.id,
+    'name',           c.name,
+    'email',          c.email,
+    'password_hash',  c.password_hash,
+    'phone',          c.phone,
+    'address',        c.address,
+    'pincode',        c.pincode,
+    'license_number', c.license_number,
+    'specialization', c.specialization,
+    'working_hours',  c.working_hours,
+    'description',    c.description,
+    'created_at',     c.created_at
+  ) from "mastertable-clinics" c where email = p_email into result;
   return result;
 end;
 $$;
@@ -411,10 +445,13 @@ create or replace function get_clinics_by_pincode(
 returns json language plpgsql security definer as $$
 declare
   result     json;
-  offset_val integer := (p_page - 1) * p_per_page;
+  offset_val integer;
   prefix3    text    := left(p_user_pincode, 3);
   total      integer;
 begin
+  if p_page < 1 then p_page := 1; end if;
+  if p_per_page < 1 then p_per_page := 6; end if;
+  offset_val := (p_page - 1) * p_per_page;
   select count(*) from "mastertable-clinics" into total;
 
   select json_build_object(
@@ -442,14 +479,28 @@ $$;
 -- ── RPC: update_appointment_status ──────────────────────────
 create or replace function update_appointment_status(
   p_appointment_master_id uuid,
+  p_clinic_master_id      uuid,
   p_status                text,
   p_pincode               text
 )
 returns boolean language plpgsql security definer as $$
 declare
   appointments_tbl text := p_pincode || '-appointments';
+  rows_affected    integer;
 begin
-  update "mastertable-appointments" set status = p_status where id = p_appointment_master_id;
+  if p_status not in ('approved', 'rejected') then
+    raise exception 'Invalid status %. Must be approved or rejected.', p_status;
+  end if;
+
+  update "mastertable-appointments"
+  set status = p_status
+  where id = p_appointment_master_id
+    and clinic_id = p_clinic_master_id;
+
+  get diagnostics rows_affected = row_count;
+  if rows_affected = 0 then
+    return false;
+  end if;
 
   execute format(
     'update %I set status = %L where master_id = %L',
@@ -461,13 +512,18 @@ end;
 $$;
 
 -- ── GRANTS ──────────────────────────────────────────────────
-grant execute on function register_user(text,text,text,text,integer,text,text)                                                             to anon;
-grant execute on function register_clinic(text,text,text,text,text,text,text,text,text,text)                                               to anon;
-grant execute on function register_pet(uuid,text,text,text,text,integer,numeric,text,text,text,date,text)                                  to anon;
-grant execute on function create_appointment(uuid,uuid,uuid,timestamptz,text,text,text)                                                    to anon;
-grant execute on function get_user_by_email(text)                                                                                          to anon;
-grant execute on function get_clinic_by_email(text)                                                                                        to anon;
-grant execute on function get_user_profile(text,uuid)                                                                                      to anon;
-grant execute on function get_clinic_appointments(uuid)                                                                                    to anon;
-grant execute on function get_clinics_by_pincode(text,integer,integer)                                                                     to anon;
-grant execute on function update_appointment_status(uuid,text,text)                                                                        to anon;
+-- Public: registration and discovery only
+grant execute on function register_user(text,text,text,text,integer,text,text)              to anon;
+grant execute on function register_clinic(text,text,text,text,text,text,text,text,text,text) to anon;
+grant execute on function get_clinics_by_pincode(text,integer,integer)                       to anon;
+
+-- Auth lookups: service_role only (password_hash is included)
+grant execute on function get_user_by_email(text)                                            to service_role;
+grant execute on function get_clinic_by_email(text)                                          to service_role;
+
+-- Authenticated operations: anon is used by our backend (JWT verified server-side)
+grant execute on function register_pet(uuid,text,text,text,text,integer,numeric,text,text,text,date,text) to anon;
+grant execute on function create_appointment(uuid,uuid,uuid,timestamptz,text,text,text)      to anon;
+grant execute on function get_user_profile(text,uuid)                                        to anon;
+grant execute on function get_clinic_appointments(uuid)                                      to anon;
+grant execute on function update_appointment_status(uuid,uuid,text,text)                     to anon;

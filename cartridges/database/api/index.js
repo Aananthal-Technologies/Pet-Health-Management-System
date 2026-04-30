@@ -1,10 +1,10 @@
-import supabase from '../controller/supabase.js';
+import supabase, { supabaseService } from '../controller/supabase.js';
 
 const db = {
   async registerUser({ name, email, passwordHash, phone, age, address, pincode }) {
     const { data, error } = await supabase.rpc('register_user', {
       p_name: name, p_email: email, p_password_hash: passwordHash,
-      p_phone: phone || null, p_age: Number(age), p_address: address || null, p_pincode: pincode,
+      p_phone: phone || null, p_age: age ? Number(age) : null, p_address: address || null, p_pincode: pincode,
     });
     if (error) throw error;
     return data;
@@ -55,13 +55,13 @@ const db = {
   },
 
   async getUserByEmail(email) {
-    const { data, error } = await supabase.rpc('get_user_by_email', { p_email: email });
+    const { data, error } = await supabaseService.rpc('get_user_by_email', { p_email: email });
     if (error) throw error;
     return data;
   },
 
   async getClinicByEmail(email) {
-    const { data, error } = await supabase.rpc('get_clinic_by_email', { p_email: email });
+    const { data, error } = await supabaseService.rpc('get_clinic_by_email', { p_email: email });
     if (error) throw error;
     return data;
   },
@@ -90,9 +90,12 @@ const db = {
     return data;
   },
 
-  async updateAppointmentStatus(appointmentMasterId, status, pincode) {
+  async updateAppointmentStatus(appointmentMasterId, clinicMasterId, status, pincode) {
     const { data, error } = await supabase.rpc('update_appointment_status', {
-      p_appointment_master_id: appointmentMasterId, p_status: status, p_pincode: pincode,
+      p_appointment_master_id: appointmentMasterId,
+      p_clinic_master_id:      clinicMasterId,
+      p_status:                status,
+      p_pincode:               pincode,
     });
     if (error) throw error;
     return data;

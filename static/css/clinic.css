@@ -6,6 +6,7 @@ body{font-family:system-ui,sans-serif;background:#f5f7fa;color:#1a1a2e;min-heigh
 .auth-tabs{display:flex;border-bottom:1px solid #eee}
 .auth-tab{flex:1;padding:.9rem;text-align:center;cursor:pointer;font-size:.9rem;color:#888;transition:all .2s}
 .auth-tab.active{color:#059669;border-bottom:2px solid #059669;font-weight:600}
+.auth-tab:focus-visible{outline:2px solid #059669;outline-offset:2px;border-radius:2px}
 .auth-form{padding:2rem;display:none}
 .auth-form.active{display:block}
 .auth-form h2{margin-bottom:1.5rem;font-size:1.2rem}
