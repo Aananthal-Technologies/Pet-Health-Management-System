@@ -16,8 +16,6 @@
 </div>
 
 <div class="page">
-
-  <!-- Pets -->
   <div class="section">
     <div class="section-header">
       <span class="section-title">Your Pets</span>
@@ -26,19 +24,16 @@
     <div class="pet-grid" id="pet-grid"><p class="empty">Loading...</p></div>
   </div>
 
-  <!-- Appointments -->
   <div class="section">
     <div class="section-header"><span class="section-title">Your Appointments</span></div>
     <div class="appt-list" id="appt-list"><p class="empty">No appointments yet.</p></div>
   </div>
 
-  <!-- Clinics -->
   <div class="section">
     <div class="section-header"><span class="section-title">Nearby Clinics</span></div>
     <div class="clinic-grid" id="clinic-grid"><p class="empty">Loading...</p></div>
     <button class="load-more" id="load-more-btn" onclick="loadMoreClinics()" style="display:none">Load More Clinics</button>
   </div>
-
 </div>
 
 <!-- Add Pet Modal -->
@@ -46,14 +41,22 @@
   <div class="modal">
     <button class="modal-close" onclick="closeModal('pet-modal')">✕</button>
     <h3>Add New Pet</h3>
-    <div class="row"><div class="field"><label>Pet Name *</label><input type="text" id="np-name" /></div>
-    <div class="field"><label>Species *</label><select id="np-species"><option value="">Select</option><option>dog</option><option>cat</option><option>bird</option><option>rabbit</option><option>fish</option><option>reptile</option><option>other</option></select></div></div>
-    <div class="row"><div class="field"><label>Breed</label><input type="text" id="np-breed" /></div>
-    <div class="field"><label>Gender</label><select id="np-gender"><option value="">Select</option><option>male</option><option>female</option><option>unknown</option></select></div></div>
-    <div class="row"><div class="field"><label>Age (yrs)</label><input type="number" id="np-age" min="0" /></div>
-    <div class="field"><label>Weight (kg)</label><input type="number" id="np-weight" step="0.1" min="0" /></div></div>
-    <div class="row"><div class="field"><label>Color</label><input type="text" id="np-color" /></div>
-    <div class="field"><label>Vaccination</label><select id="np-vacc"><option value="unknown">Unknown</option><option value="vaccinated">Vaccinated</option><option value="not vaccinated">Not Vaccinated</option><option value="partial">Partial</option></select></div></div>
+    <div class="row">
+      <div class="field"><label>Pet Name *</label><input type="text" id="np-name" /></div>
+      <div class="field"><label>Species *</label><select id="np-species"><option value="">Select</option><option>dog</option><option>cat</option><option>bird</option><option>rabbit</option><option>fish</option><option>reptile</option><option>other</option></select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Breed</label><input type="text" id="np-breed" /></div>
+      <div class="field"><label>Gender</label><select id="np-gender"><option value="">Select</option><option>male</option><option>female</option><option>unknown</option></select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Age (yrs)</label><input type="number" id="np-age" min="0" /></div>
+      <div class="field"><label>Weight (kg)</label><input type="number" id="np-weight" step="0.1" min="0" /></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Color</label><input type="text" id="np-color" /></div>
+      <div class="field"><label>Vaccination</label><select id="np-vacc"><option value="unknown">Unknown</option><option value="vaccinated">Vaccinated</option><option value="not vaccinated">Not Vaccinated</option><option value="partial">Partial</option></select></div>
+    </div>
     <div class="field"><label>Last Checkup</label><input type="date" id="np-checkup" /></div>
     <div class="field"><label>Medical Notes</label><textarea id="np-notes" rows="2"></textarea></div>
     <p class="msg" id="np-msg"></p>
@@ -80,10 +83,12 @@
   const token   = localStorage.getItem('ownerToken');
   const name    = localStorage.getItem('ownerName');
   const pincode = localStorage.getItem('ownerPincode');
-  const ownerId = localStorage.getItem('ownerId');
-  if (!token) location.href = '/';
+
+  if (!token) { location.href = '/'; throw new Error('redirect'); }
 
   document.getElementById('welcome').textContent = `${name} · ${pincode}`;
+
+  const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
   const api = (url, opts = {}) => fetch(url, {
     ...opts,
@@ -98,76 +103,83 @@
   function logout() { localStorage.clear(); location.href = '/'; }
   function openAddPet() { document.getElementById('pet-modal').classList.add('open'); }
   function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function showMsg(id, text, type) { const el = document.getElementById(id); el.textContent = text; el.className = 'msg ' + type; }
+  function statusBadge(s) { return `<span class="badge ${esc(s)}">${esc(s)}</span>`; }
 
-  function showMsg(id, text, type) {
-    const el = document.getElementById(id);
-    el.textContent = text; el.className = 'msg ' + type;
-  }
-
-  function statusBadge(s) {
-    return `<span class="badge ${s}">${s}</span>`;
-  }
+  // Event delegation for clinic book buttons
+  document.getElementById('clinic-grid').addEventListener('click', (e) => {
+    const btn = e.target.closest('.book-btn');
+    if (!btn) return;
+    openBook(btn.dataset.clinicId, btn.dataset.clinicName);
+  });
 
   async function loadProfile() {
-    const res  = await api('/api/owner/profile');
-    const data = await res.json();
-    if (!data.success) return;
-    const { pets: petsData, appointments } = data.data;
-    pets = petsData || [];
+    try {
+      const res  = await api('/api/owner/profile');
+      if (!res.ok) { document.getElementById('pet-grid').innerHTML = '<p class="empty">Failed to load profile.</p>'; return; }
+      const data = await res.json();
+      if (!data.success) { document.getElementById('pet-grid').innerHTML = '<p class="empty">Failed to load profile.</p>'; return; }
 
-    // Render pets
-    const grid = document.getElementById('pet-grid');
-    if (!pets.length) { grid.innerHTML = '<p class="empty">No pets yet. Add your first pet!</p>'; }
-    else {
-      grid.innerHTML = pets.map(p => `
-        <div class="pet-card">
-          <div class="pet-name">${p.name}</div>
-          <div class="pet-species">${p.species}</div>
-          ${p.breed    ? `<div class="pet-detail">Breed: ${p.breed}</div>` : ''}
-          ${p.gender   ? `<div class="pet-detail">Gender: ${p.gender}</div>` : ''}
-          ${p.age      ? `<div class="pet-detail">Age: ${p.age} yrs</div>` : ''}
-          ${p.weight   ? `<div class="pet-detail">Weight: ${p.weight} kg</div>` : ''}
-          ${p.color    ? `<div class="pet-detail">Color: ${p.color}</div>` : ''}
-          ${p.medical_notes ? `<div class="pet-detail">📋 ${p.medical_notes}</div>` : ''}
-          <span class="pet-badge">${p.vaccination_status || 'unknown'}</span>
-        </div>`).join('');
-    }
+      const { pets: petsData, appointments } = data.data;
+      pets = petsData || [];
 
-    // Render appointments
-    const list = document.getElementById('appt-list');
-    if (!appointments || !appointments.length) { list.innerHTML = '<p class="empty">No appointments yet.</p>'; }
-    else {
-      list.innerHTML = appointments.map(({ appointment: a, pet: p, clinic: c }) => `
-        <div class="appt-card">
-          <div class="appt-info">
-            <div class="appt-clinic">${c.name}</div>
-            <div class="appt-pet">${p.name} (${p.species})</div>
-            <div class="appt-date">${new Date(a.appointment_date).toLocaleString()} · ${a.reason || ''}</div>
-          </div>
-          ${statusBadge(a.status)}
-        </div>`).join('');
+      const grid = document.getElementById('pet-grid');
+      if (!pets.length) { grid.innerHTML = '<p class="empty">No pets yet. Add your first pet!</p>'; }
+      else {
+        grid.innerHTML = pets.map(p => `
+          <div class="pet-card">
+            <div class="pet-name">${esc(p.name)}</div>
+            <div class="pet-species">${esc(p.species)}</div>
+            ${p.breed   ? `<div class="pet-detail">Breed: ${esc(p.breed)}</div>`   : ''}
+            ${p.gender  ? `<div class="pet-detail">Gender: ${esc(p.gender)}</div>` : ''}
+            ${p.age     ? `<div class="pet-detail">Age: ${esc(p.age)} yrs</div>`   : ''}
+            ${p.weight  ? `<div class="pet-detail">Weight: ${esc(p.weight)} kg</div>` : ''}
+            ${p.color   ? `<div class="pet-detail">Color: ${esc(p.color)}</div>`   : ''}
+            ${p.medical_notes ? `<div class="pet-detail">📋 ${esc(p.medical_notes)}</div>` : ''}
+            <span class="pet-badge">${esc(p.vaccination_status || 'unknown')}</span>
+          </div>`).join('');
+      }
+
+      const list = document.getElementById('appt-list');
+      if (!appointments || !appointments.length) { list.innerHTML = '<p class="empty">No appointments yet.</p>'; }
+      else {
+        list.innerHTML = appointments.map(({ appointment: a, pet: p, clinic: c }) => `
+          <div class="appt-card">
+            <div class="appt-info">
+              <div class="appt-clinic">${esc(c.name)}</div>
+              <div class="appt-pet">${esc(p.name)} (${esc(p.species)})</div>
+              <div class="appt-date">${new Date(a.appointment_date).toLocaleString()} · ${esc(a.reason || '')}</div>
+            </div>
+            ${statusBadge(a.status)}
+          </div>`).join('');
+      }
+    } catch (err) {
+      document.getElementById('pet-grid').innerHTML = '<p class="empty">Network error. Please refresh.</p>';
     }
   }
 
   async function loadClinics(page = 1) {
-    const res  = await api(`/api/owner/clinics?page=${page}`);
-    const data = await res.json();
-    if (!data.success) return;
-    const { clinics, has_more } = data.data;
-    const grid = document.getElementById('clinic-grid');
-    if (page === 1) grid.innerHTML = '';
-    if (!clinics || !clinics.length) { grid.innerHTML += '<p class="empty">No clinics found.</p>'; return; }
-    grid.innerHTML += clinics.map(c => `
-      <div class="clinic-card ${c.pincode === pincode ? 'same-pincode' : ''}">
-        <div class="clinic-name">${c.name}</div>
-        <div class="clinic-spec">${c.specialization || 'General'} · ${c.pincode}</div>
-        ${c.address      ? `<div class="clinic-info">📍 ${c.address}</div>` : ''}
-        ${c.phone        ? `<div class="clinic-info">📞 ${c.phone}</div>` : ''}
-        ${c.working_hours? `<div class="clinic-info">🕐 ${c.working_hours}</div>` : ''}
-        ${c.description  ? `<div class="clinic-info" style="margin-top:.4rem;font-style:italic">${c.description}</div>` : ''}
-        <button class="book-btn" onclick="openBook('${c.id}','${c.name.replace(/'/g,"\\'")}')">Book Appointment</button>
-      </div>`).join('');
-    document.getElementById('load-more-btn').style.display = has_more ? 'block' : 'none';
+    try {
+      const res  = await api(`/api/owner/clinics?page=${page}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success) return;
+      const { clinics, has_more } = data.data;
+      const grid = document.getElementById('clinic-grid');
+      if (page === 1) grid.innerHTML = '';
+      if (!clinics || !clinics.length) { grid.innerHTML += '<p class="empty">No clinics found.</p>'; return; }
+      grid.innerHTML += clinics.map(c => `
+        <div class="clinic-card ${String(c.pincode) === String(pincode) ? 'same-pincode' : ''}">
+          <div class="clinic-name">${esc(c.name)}</div>
+          <div class="clinic-spec">${esc(c.specialization || 'General')} · ${esc(c.pincode)}</div>
+          ${c.address       ? `<div class="clinic-info">📍 ${esc(c.address)}</div>`       : ''}
+          ${c.phone         ? `<div class="clinic-info">📞 ${esc(c.phone)}</div>`         : ''}
+          ${c.working_hours ? `<div class="clinic-info">🕐 ${esc(c.working_hours)}</div>` : ''}
+          ${c.description   ? `<div class="clinic-info" style="margin-top:.4rem;font-style:italic">${esc(c.description)}</div>` : ''}
+          <button class="book-btn" data-clinic-id="${esc(c.id)}" data-clinic-name="${esc(c.name)}">Book Appointment</button>
+        </div>`).join('');
+      document.getElementById('load-more-btn').style.display = has_more ? 'block' : 'none';
+    } catch { /* network error — fail silently, grid stays as-is */ }
   }
 
   function loadMoreClinics() { clinicPage++; loadClinics(clinicPage); }
@@ -176,45 +188,51 @@
     selectedClinicId = clinicId;
     document.getElementById('book-clinic-name').textContent = clinicName;
     const select = document.getElementById('b-pet');
-    select.innerHTML = pets.length
-      ? pets.map(p => `<option value="${p.master_id}">${p.name} (${p.species})</option>`).join('')
-      : '<option value="">No pets — add one first</option>';
+    if (pets.length) {
+      select.innerHTML = pets.map(p => `<option value="${esc(p.master_id)}">${esc(p.name)} (${esc(p.species)})</option>`).join('');
+    } else {
+      select.innerHTML = '<option value="">No pets — add one first</option>';
+    }
     document.getElementById('book-modal').classList.add('open');
   }
 
   async function addPet() {
-    const name = document.getElementById('np-name').value.trim();
+    const name    = document.getElementById('np-name').value.trim();
     const species = document.getElementById('np-species').value;
     if (!name || !species) return showMsg('np-msg', 'Name and species are required', 'error');
     const pet = {
       name, species,
       breed:              document.getElementById('np-breed').value.trim()   || null,
       gender:             document.getElementById('np-gender').value         || null,
-      age:                document.getElementById('np-age').value            || null,
-      weight:             document.getElementById('np-weight').value         || null,
+      age:                (v => v !== '' ? Number(v) : null)(document.getElementById('np-age').value),
+      weight:             (v => v !== '' ? Number(v) : null)(document.getElementById('np-weight').value),
       color:              document.getElementById('np-color').value.trim()   || null,
       vaccination_status: document.getElementById('np-vacc').value,
       last_checkup_date:  document.getElementById('np-checkup').value       || null,
       medical_notes:      document.getElementById('np-notes').value.trim()  || null,
     };
-    const res  = await api('/api/owner/pets', { method: 'POST', body: pet });
-    const data = await res.json();
-    if (!data.success) return showMsg('np-msg', data.message, 'error');
-    closeModal('pet-modal');
-    loadProfile();
+    try {
+      const res  = await api('/api/owner/pets', { method: 'POST', body: pet });
+      const data = await res.json();
+      if (!data.success) return showMsg('np-msg', data.message, 'error');
+      closeModal('pet-modal');
+      loadProfile();
+    } catch (err) { showMsg('np-msg', err.message || 'Failed to add pet', 'error'); }
   }
 
   async function bookAppointment() {
-    const pet_id          = document.getElementById('b-pet').value;
-    const appointment_date= document.getElementById('b-date').value;
-    const reason          = document.getElementById('b-reason').value.trim();
-    const notes           = document.getElementById('b-notes').value.trim();
+    const pet_id           = document.getElementById('b-pet').value;
+    const appointment_date = document.getElementById('b-date').value;
+    const reason           = document.getElementById('b-reason').value.trim();
+    const notes            = document.getElementById('b-notes').value.trim();
     if (!pet_id || !appointment_date || !reason) return showMsg('b-msg', 'Please fill required fields', 'error');
-    const res  = await api('/api/owner/appointments', { method: 'POST', body: { pet_id, clinic_id: selectedClinicId, appointment_date, reason, notes } });
-    const data = await res.json();
-    if (!data.success) return showMsg('b-msg', data.message, 'error');
-    showMsg('b-msg', 'Appointment booked!', 'success');
-    setTimeout(() => { closeModal('book-modal'); loadProfile(); }, 1200);
+    try {
+      const res  = await api('/api/owner/appointments', { method: 'POST', body: { pet_id, clinic_id: selectedClinicId, appointment_date, reason, notes } });
+      const data = await res.json();
+      if (!data.success) return showMsg('b-msg', data.message, 'error');
+      showMsg('b-msg', 'Appointment booked!', 'success');
+      setTimeout(() => { closeModal('book-modal'); loadProfile(); }, 1200);
+    } catch (err) { showMsg('b-msg', err.message || 'Failed to book', 'error'); }
   }
 
   loadProfile();

@@ -12,7 +12,25 @@
       "Bash(kill %1)",
       "Bash(rm -rf templates client static)",
       "Bash(mkdir -p cartridges/auth/routes cartridges/auth/controller cartridges/auth/model cartridges/auth/middleware cartridges/pets/routes cartridges/pets/controller cartridges/pets/model cartridges/pets/middleware cartridges/owners/routes cartridges/owners/controller cartridges/owners/model cartridges/owners/middleware cartridges/appointments/routes cartridges/appointments/controller cartridges/appointments/model cartridges/appointments/middleware cartridges/medical-records/routes cartridges/medical-records/controller cartridges/medical-records/model cartridges/medical-records/middleware config middleware client/src client/public static/css static/js static/images templates/layouts templates/pages)",
-      "Bash(xargs -I{} touch \"{}/.gitkeep\")"
+      "Bash(xargs -I{} touch \"{}/.gitkeep\")",
+      "Bash(npm run *)",
+      "Bash(curl -s -X POST http://localhost:3001/api/clinic/register -H 'Content-Type: application/json' -d '{\"name\":\"PawCare Clinic\",\"email\":\"pawcare@clinic.com\",\"password\":\"clinic123\",\"phone\":\"9876543210\",\"address\":\"12 MG Road, Bengaluru\",\"pincode\":\"560045\",\"licenseNumber\":\"VET/2024/001\",\"specialization\":\"Dogs\",\"workingHours\":\"9AM-6PM\",\"description\":\"Specialist in dogs and cats\"}')",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:3001/api/clinic/register -H 'Content-Type: application/json' -d '{\"name\":\"Happy Paws Vet\",\"email\":\"happypaws@vet.com\",\"password\":\"clinic123\",\"phone\":\"9123456780\",\"address\":\"45 Anna Salai, Chennai\",\"pincode\":\"600001\",\"licenseNumber\":\"VET/2024/002\",\"specialization\":\"Cats\",\"workingHours\":\"8AM-8PM\",\"description\":\"All animals welcome\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/api/owner/register -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(curl -s -X POST http://localhost:3000/api/owner/login -H 'Content-Type: application/json' -d '{\"email\":\"vedesh@test.com\",\"password\":\"owner123\"}')",
+      "Bash(curl -s -X POST http://localhost:3001/api/clinic/login -H 'Content-Type: application/json' -d '{\"email\":\"pawcare@clinic.com\",\"password\":\"clinic123\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/api/owner/login -H 'Content-Type: application/json' -d '{\"email\":\"vedesh@test.com\",\"password\":\"wrongpass\"}')",
+      "Bash(curl -s http://localhost:3000/api/owner/profile)",
+      "Bash(curl -s 'http://localhost:3000/api/owner/clinics?page=1' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIzNmU5NGM5LTA5YmUtNDJmNS05ZDNhLWI3NWQ4ZWZjNDgyYiIsInR5cGUiOiJvd25lciIsInBpbmNvZGUiOiI1NjAwNDUiLCJpYXQiOjE3Nzc1ODM1NDAsImV4cCI6MTc3ODE4ODM0MH0.ONNENVHdJQBbkGxM2jAvi5s0yFT7b-L6j0i7pWaKj3Y')",
+      "Bash(curl -s -X POST http://localhost:3000/api/owner/appointments -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIzNmU5NGM5LTA5YmUtNDJmNS05ZDNhLWI3NWQ4ZWZjNDgyYiIsInR5cGUiOiJvd25lciIsInBpbmNvZGUiOiI1NjAwNDUiLCJpYXQiOjE3Nzc1ODM1NDAsImV4cCI6MTc3ODE4ODM0MH0.ONNENVHdJQBbkGxM2jAvi5s0yFT7b-L6j0i7pWaKj3Y' -d '{ *)",
+      "Bash(curl -s http://localhost:3000/api/owner/profile -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIzNmU5NGM5LTA5YmUtNDJmNS05ZDNhLWI3NWQ4ZWZjNDgyYiIsInR5cGUiOiJvd25lciIsInBpbmNvZGUiOiI1NjAwNDUiLCJpYXQiOjE3Nzc1ODM1NDAsImV4cCI6MTc3ODE4ODM0MH0.ONNENVHdJQBbkGxM2jAvi5s0yFT7b-L6j0i7pWaKj3Y')",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s http://localhost:3001/api/clinic/appointments -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjdjNGYyMTVkLWMzNDYtNGQ2MS04NzY4LTllMzM3MTNhZTNhZSIsInR5cGUiOiJjbGluaWMiLCJwaW5jb2RlIjoiNTYwMDQ1IiwiaWF0IjoxNzc3NTgzNTQwLCJleHAiOjE3NzgxODgzNDB9.QK7EqcZwT-L0fZndnUzNbyUI-yjXz2WEGiP5mNs1-0c')",
+      "Bash(curl -s -X PATCH http://localhost:3001/api/clinic/appointments/5bfafebf-959c-4711-9b3a-a72f98f1b154/status -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjdjNGYyMTVkLWMzNDYtNGQ2MS04NzY4LTllMzM3MTNhZTNhZSIsInR5cGUiOiJjbGluaWMiLCJwaW5jb2RlIjoiNTYwMDQ1IiwiaWF0IjoxNzc3NTgzNTQwLCJleHAiOjE3NzgxODgzNDB9.QK7EqcZwT-L0fZndnUzNbyUI-yjXz2WEGiP5mNs1-0c' -d '{\"status\":\"approved\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/api/owner/pets -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIzNmU5NGM5LTA5YmUtNDJmNS05ZDNhLWI3NWQ4ZWZjNDgyYiIsInR5cGUiOiJvd25lciIsInBpbmNvZGUiOiI1NjAwNDUiLCJpYXQiOjE3Nzc1ODM1NDAsImV4cCI6MTc3ODE4ODM0MH0.ONNENVHdJQBbkGxM2jAvi5s0yFT7b-L6j0i7pWaKj3Y' -d '{\"name\":\"Max\",\"species\":\"rabbit\",\"breed\":\"Holland Lop\",\"gender\":\"male\",\"age\":1,\"weight\":1.8,\"color\":\"brown\",\"vaccination_status\":\"not vaccinated\",\"medical_notes\":\"Dental checkup needed\"}')",
+      "Bash(curl -s -X POST http://localhost:3001/api/clinic/login -H 'Content-Type: application/json' -d '{\"email\":\"happypaws@vet.com\",\"password\":\"clinic123\"}')",
+      "Bash(curl -s -X PATCH http://localhost:3001/api/clinic/appointments/5bfafebf-959c-4711-9b3a-a72f98f1b154/status -H 'Content-Type: application/json' -H 'Authorization: Bearer __CMDSUB_OUTPUT__')"
     ]
   }
 }
