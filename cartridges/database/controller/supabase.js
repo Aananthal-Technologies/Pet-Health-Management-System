@@ -1,13 +1,12 @@
-require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
+import 'dotenv/config';
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = process.env;
 
-if (!supabaseUrl || !supabaseKey) {
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY in environment variables');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-module.exports = supabase;
+export default supabase;
