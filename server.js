@@ -74,6 +74,10 @@ app.get('/pincode/:pincode',          async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`http://localhost:${PORT}/account/register`);
-});
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`http://localhost:${PORT}/account/register`);
+  });
+}
+
+export default app;
