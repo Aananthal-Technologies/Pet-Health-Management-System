@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard — PHMS</title>
+  <link rel="stylesheet" href="/css/owner.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">🐾 PHMS</span>
+  <div class="user-info">
+    <span id="welcome"></span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- Pets -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Your Pets</span>
+      <button class="add-btn" onclick="openAddPet()">+ Add Pet</button>
+    </div>
+    <div class="pet-grid" id="pet-grid"><p class="empty">Loading...</p></div>
+  </div>
+
+  <!-- Appointments -->
+  <div class="section">
+    <div class="section-header"><span class="section-title">Your Appointments</span></div>
+    <div class="appt-list" id="appt-list"><p class="empty">No appointments yet.</p></div>
+  </div>
+
+  <!-- Clinics -->
+  <div class="section">
+    <div class="section-header"><span class="section-title">Nearby Clinics</span></div>
+    <div class="clinic-grid" id="clinic-grid"><p class="empty">Loading...</p></div>
+    <button class="load-more" id="load-more-btn" onclick="loadMoreClinics()" style="display:none">Load More Clinics</button>
+  </div>
+
+</div>
+
+<!-- Add Pet Modal -->
+<div class="modal-bg" id="pet-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('pet-modal')">✕</button>
+    <h3>Add New Pet</h3>
+    <div class="row"><div class="field"><label>Pet Name *</label><input type="text" id="np-name" /></div>
+    <div class="field"><label>Species *</label><select id="np-species"><option value="">Select</option><option>dog</option><option>cat</option><option>bird</option><option>rabbit</option><option>fish</option><option>reptile</option><option>other</option></select></div></div>
+    <div class="row"><div class="field"><label>Breed</label><input type="text" id="np-breed" /></div>
+    <div class="field"><label>Gender</label><select id="np-gender"><option value="">Select</option><option>male</option><option>female</option><option>unknown</option></select></div></div>
+    <div class="row"><div class="field"><label>Age (yrs)</label><input type="number" id="np-age" min="0" /></div>
+    <div class="field"><label>Weight (kg)</label><input type="number" id="np-weight" step="0.1" min="0" /></div></div>
+    <div class="row"><div class="field"><label>Color</label><input type="text" id="np-color" /></div>
+    <div class="field"><label>Vaccination</label><select id="np-vacc"><option value="unknown">Unknown</option><option value="vaccinated">Vaccinated</option><option value="not vaccinated">Not Vaccinated</option><option value="partial">Partial</option></select></div></div>
+    <div class="field"><label>Last Checkup</label><input type="date" id="np-checkup" /></div>
+    <div class="field"><label>Medical Notes</label><textarea id="np-notes" rows="2"></textarea></div>
+    <p class="msg" id="np-msg"></p>
+    <button type="submit" onclick="addPet()">Add Pet</button>
+  </div>
+</div>
+
+<!-- Book Appointment Modal -->
+<div class="modal-bg" id="book-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('book-modal')">✕</button>
+    <h3>Book Appointment</h3>
+    <p id="book-clinic-name" style="font-weight:600;margin-bottom:1rem;color:#2563eb"></p>
+    <div class="field"><label>Select Pet *</label><select id="b-pet"></select></div>
+    <div class="field"><label>Date & Time *</label><input type="datetime-local" id="b-date" /></div>
+    <div class="field"><label>Reason *</label><input type="text" id="b-reason" placeholder="Vaccination, checkup..." /></div>
+    <div class="field"><label>Notes</label><textarea id="b-notes" rows="2" placeholder="Additional info..."></textarea></div>
+    <p class="msg" id="b-msg"></p>
+    <button type="submit" onclick="bookAppointment()">Confirm Booking</button>
+  </div>
+</div>
+
+<script>
+  const token   = localStorage.getItem('ownerToken');
+  const name    = localStorage.getItem('ownerName');
+  const pincode = localStorage.getItem('ownerPincode');
+  const ownerId = localStorage.getItem('ownerId');
+  if (!token) location.href = '/';
+
+  document.getElementById('welcome').textContent = `${name} · ${pincode}`;
+
+  const api = (url, opts = {}) => fetch(url, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...(opts.headers || {}) },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+
+  let clinicPage = 1;
+  let selectedClinicId = null;
+  let pets = [];
+
+  function logout() { localStorage.clear(); location.href = '/'; }
+  function openAddPet() { document.getElementById('pet-modal').classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text; el.className = 'msg ' + type;
+  }
+
+  function statusBadge(s) {
+    return `<span class="badge ${s}">${s}</span>`;
+  }
+
+  async function loadProfile() {
+    const res  = await api('/api/owner/profile');
+    const data = await res.json();
+    if (!data.success) return;
+    const { pets: petsData, appointments } = data.data;
+    pets = petsData || [];
+
+    // Render pets
+    const grid = document.getElementById('pet-grid');
+    if (!pets.length) { grid.innerHTML = '<p class="empty">No pets yet. Add your first pet!</p>'; }
+    else {
+      grid.innerHTML = pets.map(p => `
+        <div class="pet-card">
+          <div class="pet-name">${p.name}</div>
+          <div class="pet-species">${p.species}</div>
+          ${p.breed    ? `<div class="pet-detail">Breed: ${p.breed}</div>` : ''}
+          ${p.gender   ? `<div class="pet-detail">Gender: ${p.gender}</div>` : ''}
+          ${p.age      ? `<div class="pet-detail">Age: ${p.age} yrs</div>` : ''}
+          ${p.weight   ? `<div class="pet-detail">Weight: ${p.weight} kg</div>` : ''}
+          ${p.color    ? `<div class="pet-detail">Color: ${p.color}</div>` : ''}
+          ${p.medical_notes ? `<div class="pet-detail">📋 ${p.medical_notes}</div>` : ''}
+          <span class="pet-badge">${p.vaccination_status || 'unknown'}</span>
+        </div>`).join('');
+    }
+
+    // Render appointments
+    const list = document.getElementById('appt-list');
+    if (!appointments || !appointments.length) { list.innerHTML = '<p class="empty">No appointments yet.</p>'; }
+    else {
+      list.innerHTML = appointments.map(({ appointment: a, pet: p, clinic: c }) => `
+        <div class="appt-card">
+          <div class="appt-info">
+            <div class="appt-clinic">${c.name}</div>
+            <div class="appt-pet">${p.name} (${p.species})</div>
+            <div class="appt-date">${new Date(a.appointment_date).toLocaleString()} · ${a.reason || ''}</div>
+          </div>
+          ${statusBadge(a.status)}
+        </div>`).join('');
+    }
+  }
+
+  async function loadClinics(page = 1) {
+    const res  = await api(`/api/owner/clinics?page=${page}`);
+    const data = await res.json();
+    if (!data.success) return;
+    const { clinics, has_more } = data.data;
+    const grid = document.getElementById('clinic-grid');
+    if (page === 1) grid.innerHTML = '';
+    if (!clinics || !clinics.length) { grid.innerHTML += '<p class="empty">No clinics found.</p>'; return; }
+    grid.innerHTML += clinics.map(c => `
+      <div class="clinic-card ${c.pincode === pincode ? 'same-pincode' : ''}">
+        <div class="clinic-name">${c.name}</div>
+        <div class="clinic-spec">${c.specialization || 'General'} · ${c.pincode}</div>
+        ${c.address      ? `<div class="clinic-info">📍 ${c.address}</div>` : ''}
+        ${c.phone        ? `<div class="clinic-info">📞 ${c.phone}</div>` : ''}
+        ${c.working_hours? `<div class="clinic-info">🕐 ${c.working_hours}</div>` : ''}
+        ${c.description  ? `<div class="clinic-info" style="margin-top:.4rem;font-style:italic">${c.description}</div>` : ''}
+        <button class="book-btn" onclick="openBook('${c.id}','${c.name.replace(/'/g,"\\'")}')">Book Appointment</button>
+      </div>`).join('');
+    document.getElementById('load-more-btn').style.display = has_more ? 'block' : 'none';
+  }
+
+  function loadMoreClinics() { clinicPage++; loadClinics(clinicPage); }
+
+  function openBook(clinicId, clinicName) {
+    selectedClinicId = clinicId;
+    document.getElementById('book-clinic-name').textContent = clinicName;
+    const select = document.getElementById('b-pet');
+    select.innerHTML = pets.length
+      ? pets.map(p => `<option value="${p.master_id}">${p.name} (${p.species})</option>`).join('')
+      : '<option value="">No pets — add one first</option>';
+    document.getElementById('book-modal').classList.add('open');
+  }
+
+  async function addPet() {
+    const name = document.getElementById('np-name').value.trim();
+    const species = document.getElementById('np-species').value;
+    if (!name || !species) return showMsg('np-msg', 'Name and species are required', 'error');
+    const pet = {
+      name, species,
+      breed:              document.getElementById('np-breed').value.trim()   || null,
+      gender:             document.getElementById('np-gender').value         || null,
+      age:                document.getElementById('np-age').value            || null,
+      weight:             document.getElementById('np-weight').value         || null,
+      color:              document.getElementById('np-color').value.trim()   || null,
+      vaccination_status: document.getElementById('np-vacc').value,
+      last_checkup_date:  document.getElementById('np-checkup').value       || null,
+      medical_notes:      document.getElementById('np-notes').value.trim()  || null,
+    };
+    const res  = await api('/api/owner/pets', { method: 'POST', body: pet });
+    const data = await res.json();
+    if (!data.success) return showMsg('np-msg', data.message, 'error');
+    closeModal('pet-modal');
+    loadProfile();
+  }
+
+  async function bookAppointment() {
+    const pet_id          = document.getElementById('b-pet').value;
+    const appointment_date= document.getElementById('b-date').value;
+    const reason          = document.getElementById('b-reason').value.trim();
+    const notes           = document.getElementById('b-notes').value.trim();
+    if (!pet_id || !appointment_date || !reason) return showMsg('b-msg', 'Please fill required fields', 'error');
+    const res  = await api('/api/owner/appointments', { method: 'POST', body: { pet_id, clinic_id: selectedClinicId, appointment_date, reason, notes } });
+    const data = await res.json();
+    if (!data.success) return showMsg('b-msg', data.message, 'error');
+    showMsg('b-msg', 'Appointment booked!', 'success');
+    setTimeout(() => { closeModal('book-modal'); loadProfile(); }, 1200);
+  }
+
+  loadProfile();
+  loadClinics(1);
+</script>
+</body>
+</html>
