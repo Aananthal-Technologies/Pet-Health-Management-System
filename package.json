@@ -1,0 +1,20 @@
+{
+  "name": "pet-health-management-system",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aananthal-Technologies/Pet-Health-Management-System.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Aananthal-Technologies/Pet-Health-Management-System/issues"
+  },
+  "homepage": "https://github.com/Aananthal-Technologies/Pet-Health-Management-System#readme",
+  "description": ""
+}
